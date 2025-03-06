@@ -6,6 +6,126 @@ import { Platform, Alert } from 'react-native';
 import { PatientData } from '../store/patientData';
 import { assessRisk } from './riskAssessment';
 
+interface MedicationRisk {
+  drugName: string;
+  riskPercentage: number;
+}
+
+// Function to get medication-specific educational content
+const getMedicationEducationContent = (patientData: PatientData) => {
+  let content = '';
+  
+  // Add drug-specific information for each medication
+  if (patientData.medications.length > 0) {
+    patientData.medications.forEach(med => {
+      if (med.drugName.includes('Denosumab')) {
+        content += `
+          <div class="medication-info">
+            <h4>${med.drugName}</h4>
+            <p>單株抗體藥物，透過抑制RANK-L蛋白來減少骨質流失。與雙磷酸鹽類藥物不同，停藥後效果會較快消失。</p>
+            ${med.indication === '骨質疏鬆' ? 
+              '<p>用於骨質疏鬆時，MRONJ風險約為0.01-0.1%。</p>' : 
+              '<p>用於惡性腫瘤時，MRONJ風險約為1-2%。</p>'
+            }
+          </div>
+        `;
+      } else if (med.drugName.includes('Zoledronate')) {
+        content += `
+          <div class="medication-info">
+            <h4>${med.drugName}</h4>
+            <p>效力最強的靜脈注射型雙磷酸鹽藥物，主要用於治療癌症骨轉移、高血鈣症和骨質疏鬆。</p>
+            ${med.indication === '骨質疏鬆' ? 
+              '<p>用於骨質疏鬆時，MRONJ風險約為0.017%。</p>' : 
+              '<p>用於惡性腫瘤時，MRONJ風險約為1-10%。</p>'
+            }
+            <p>在體內可能存留超過10年。</p>
+          </div>
+        `;
+      } else if (med.drugName.includes('Alendronate')) {
+        content += `
+          <div class="medication-info">
+            <h4>${med.drugName}</h4>
+            <p>最常見的口服雙磷酸鹽藥物，主要用於治療和預防骨質疏鬆。</p>
+            <p>長期使用（大於4年）時MRONJ風險約為0.05-0.2%。</p>
+            <p>服用時需搭配全杯水直立服用，並在服藥後至少30分鐘內保持直立姿勢。</p>
+          </div>
+        `;
+      } else {
+        content += `
+          <div class="medication-info">
+            <h4>${med.drugName}</h4>
+            <p>屬於${med.administrationRoute === '口服' ? '口服' : '注射'}型藥物，用於${med.indication}。</p>
+            <p>使用此類藥物可能增加發生顎骨壞死的風險，特別是進行牙科手術時。</p>
+          </div>
+        `;
+      }
+    });
+  } else if (patientData.hasAntiresorptiveMed && patientData.drugName) {
+    // Fallback to single medication for backward compatibility
+    const drugName = patientData.drugName;
+    if (drugName.includes('Denosumab')) {
+      content += `
+        <div class="medication-info">
+          <h4>${drugName}</h4>
+          <p>單株抗體藥物，透過抑制RANK-L蛋白來減少骨質流失。與雙磷酸鹽類藥物不同，停藥後效果會較快消失。</p>
+          ${patientData.indication === '骨質疏鬆' ? 
+            '<p>用於骨質疏鬆時，MRONJ風險約為0.01-0.1%。</p>' : 
+            '<p>用於惡性腫瘤時，MRONJ風險約為1-2%。</p>'
+          }
+        </div>
+      `;
+    } else if (drugName.includes('Zoledronate')) {
+      content += `
+        <div class="medication-info">
+          <h4>${drugName}</h4>
+          <p>效力最強的靜脈注射型雙磷酸鹽藥物，主要用於治療癌症骨轉移、高血鈣症和骨質疏鬆。</p>
+          ${patientData.indication === '骨質疏鬆' ? 
+            '<p>用於骨質疏鬆時，MRONJ風險約為0.017%。</p>' : 
+            '<p>用於惡性腫瘤時，MRONJ風險約為1-10%。</p>'
+          }
+          <p>在體內可能存留超過10年。</p>
+        </div>
+      `;
+    }
+  }
+  
+  return content;
+};
+
+// Function to get risk factor explanations
+const getRiskFactorExplanations = (patientData: PatientData) => {
+  const riskFactors = [];
+  
+  if (patientData.diabetes) {
+    riskFactors.push('<li><strong>控制不佳之糖尿病</strong>: 糖化血色素(HbA1c)≥7.0%的糖尿病患者，其骨骼的血液供應和癒合能力可能受損，增加MRONJ風險約1.7倍。</li>');
+  }
+  
+  if (patientData.steroidUse) {
+    riskFactors.push('<li><strong>長期類固醇使用</strong>: 類固醇可能減緩骨骼癒合和抑制免疫系統，增加MRONJ風險約1.4倍。</li>');
+  }
+  
+  if (patientData.anemia) {
+    riskFactors.push('<li><strong>貧血</strong>: 血紅素低於10 g/dL的貧血可能降低組織氧合作用，增加MRONJ風險約1.3倍。</li>');
+  }
+  
+  if (patientData.heavySmoker) {
+    riskFactors.push('<li><strong>重度吸煙</strong>: 每天超過10支煙的吸煙習慣可能減少骨骼血液供應，增加MRONJ風險約1.3倍。</li>');
+  }
+  
+  if (patientData.periodontalIssues) {
+    riskFactors.push('<li><strong>牙周病或自發性牙痛</strong>: 牙周炎症是MRONJ的重要觸發因素，增加風險約1.5倍。</li>');
+  }
+  
+  if (patientData.isObese) {
+    riskFactors.push('<li><strong>肥胖</strong>: BMI大於30的肥胖可能增加全身性發炎反應，對骨骼癒合產生負面影響。</li>');
+  }
+  
+  return riskFactors.length > 0 ? 
+    `<div class="risk-factors"><h3>您的個人風險因素</h3><ul>${riskFactors.join('')}</ul></div>` : 
+    '';
+};
+
+// Main function to generate HTML content for PDF
 const generateHTML = (patientData: PatientData) => {
   const riskAssessments = assessRisk(patientData);
   
@@ -20,6 +140,12 @@ const generateHTML = (patientData: PatientData) => {
   const bmi = patientData.bmi || 0;
   const isObese = patientData.isObese;
   const age = patientData.age || 0;
+  
+  // Get medication-specific education content
+  const medicationEducationContent = getMedicationEducationContent(patientData);
+  
+  // Get risk factor explanations
+  const riskFactorExplanations = getRiskFactorExplanations(patientData);
 
   return `
     <html>
@@ -28,6 +154,9 @@ const generateHTML = (patientData: PatientData) => {
         <style>
           body { font-family: sans-serif; padding: 20px; }
           h1 { color: #007AFF; text-align: center; }
+          h2 { color: #333; margin-top: 25px; }
+          h3 { color: #555; margin-top: 20px; }
+          h4 { color: #007AFF; margin-bottom: 5px; }
           .section { margin: 20px 0; }
           .assessment { 
             border: 1px solid #ccc; 
@@ -45,6 +174,60 @@ const generateHTML = (patientData: PatientData) => {
           }
           .page-break {
             page-break-before: always;
+          }
+          .medication-info {
+            background-color: #f0f7ff;
+            padding: 12px;
+            border-radius: 5px;
+            margin: 10px 0;
+          }
+          .risk-factors {
+            background-color: #fff9f0;
+            padding: 12px;
+            border-radius: 5px;
+            margin: 15px 0;
+          }
+          .education-section {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+          }
+          .citation {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            font-style: italic;
+          }
+          .citations-section {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+          }
+          .citations-section h3 {
+            font-size: 14px;
+            color: #555;
+          }
+          .citations-section ol {
+            font-size: 12px;
+            padding-left: 20px;
+          }
+          .warning {
+            background-color: #ffeaea;
+            color: #d00;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+          }
+          .medication-list {
+            margin: 10px 0;
+          }
+          .medication-item {
+            background-color: #f8f8f8;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 5px;
           }
           .privacy-policy {
             margin: 20px 0;
@@ -108,24 +291,48 @@ const generateHTML = (patientData: PatientData) => {
           <p>腫瘤病史: ${patientData.hasCancer ? '有' : '無'}</p>
           ${patientData.hasCancer ? `<p>詳情: ${patientData.cancerHistory}</p>` : ''}
           <p>其他病史: ${patientData.otherConditions || '無'}</p>
+          
+          <h3>MRONJ特定風險因素</h3>
+          <p>長期類固醇使用: ${patientData.steroidUse ? '是' : '否'}</p>
+          <p>糖尿病: ${patientData.diabetes ? '是' : '否'}</p>
+          <p>貧血: ${patientData.anemia ? '是' : '否'}</p>
+          <p>重度吸煙者: ${patientData.heavySmoker ? '是' : '否'}</p>
+          <p>牙周病或自發性牙痛: ${patientData.periodontalIssues ? '是' : '否'}</p>
         </div>
 
         <div class="section">
           <h2>用藥紀錄</h2>
-          ${patientData.hasAntiresorptiveMed ? `
-            <p>藥物名稱: ${patientData.drugName}</p>
-            <p>使用方式: ${patientData.administrationRoute}</p>
-            <p>使用原因: ${patientData.indication}</p>
-            <p>開始時間: ${patientData.startYear}年${patientData.startMonth}月</p>
-            <p>使用頻率: ${patientData.frequency}</p>
-            ${patientData.isStopped ? 
-              `<p>停藥時間: ${patientData.stopYear}年${patientData.stopMonth}月</p>` : 
-              '<p>目前持續使用中</p>'
-            }
-          ` : '<p>無使用相關藥物</p>'}
+          ${patientData.hasAntiresorptiveMed ? 
+            patientData.medications.length > 0 ? 
+              `<div class="medication-list">
+                ${patientData.medications.map((med, index) => `
+                  <div class="medication-item">
+                    <p><strong>藥物 ${index+1}:</strong> ${med.drugName}</p>
+                    <p>使用方式: ${med.administrationRoute}</p>
+                    <p>使用原因: ${med.indication}</p>
+                    <p>開始時間: ${med.startYear}年${med.startMonth}月</p>
+                    <p>使用頻率: ${med.frequency}</p>
+                    ${med.isStopped ? 
+                      `<p>停藥時間: ${med.stopYear}年${med.stopMonth}月</p>` : 
+                      '<p>目前持續使用中</p>'
+                    }
+                    <p>使用期間: ${med.durationMonths ? `約${med.durationMonths}個月` : '計算中'}</p>
+                  </div>
+                `).join('')}
+              </div>`
+              : 
+              `<p>藥物名稱: ${patientData.drugName}</p>
+              <p>使用方式: ${patientData.administrationRoute}</p>
+              <p>使用原因: ${patientData.indication}</p>
+              <p>開始時間: ${patientData.startYear}年${patientData.startMonth}月</p>
+              <p>使用頻率: ${patientData.frequency}</p>
+              ${patientData.isStopped ? 
+                `<p>停藥時間: ${patientData.stopYear}年${patientData.stopMonth}月</p>` : 
+                '<p>目前持續使用中</p>'
+              }`
+            : '<p>無使用相關藥物</p>'
+          }
         </div>
-
-
 
         <div class="page-break"></div>
         <div class="section">
@@ -137,12 +344,89 @@ const generateHTML = (patientData: PatientData) => {
                             assessment.riskLevel === '中度風險' ? 'medium' : 'low'}">
                 風險程度: ${assessment.riskLevel}
               </p>
+              ${assessment.medicationContributions ? 
+                `<p>藥物風險貢獻:</p>
+                <ul>
+                  ${assessment.medicationContributions.map(med => 
+                    `<li>${med.drugName}: ${med.riskPercentage.toFixed(2)}%</li>`
+                  ).join('')}
+                </ul>` : ''
+              }
               <p>建議: ${assessment.recommendation}</p>
+              ${assessment.procedure === '拔牙' && patientData.periodontalIssues ? 
+                `<p class="warning">警告：您有牙周炎症問題，這會顯著增加MRONJ風險。建議先治療牙周疾病再考慮手術。</p>` : ''
+              }
             </div>
           `).join('')}
+          
+          ${riskFactorExplanations}
+          
+          <div class="citations-section">
+            <h3>學術文獻參考</h3>
+            <ol>
+              ${Array.from(new Set(riskAssessments.flatMap(a => a.citations || []))).map(citation => 
+                `<li>${citation}</li>`
+              ).join('')}
+              <li>Ruggiero SL, et al. American Association of Oral and Maxillofacial Surgeons position paper on medication-related osteonecrosis of the jaw—2022 update. J Oral Maxillofac Surg. 2022;80(5):920-943.</li>
+            </ol>
+          </div>
         </div>
 
-
+        <div class="page-break"></div>
+        <div class="section">
+          <h2>藥物相關性顎骨壞死症 (MRONJ) 衛教資訊</h2>
+          
+          <div class="education-section">
+            <h3>什麼是MRONJ?</h3>
+            <p>藥物相關性顎骨壞死症 (Medication-Related Osteonecrosis of the Jaw, MRONJ) 是一種罕見但嚴重的副作用，可能發生在服用特定類型藥物的患者。這些藥物主要用於治療骨質疏鬆症、多發性骨髓瘤、骨轉移等疾病。</p>
+            
+            <p>依照美國口腔顎面外科學會 (AAOMS) 2022年的定義，MRONJ需符合以下條件：</p>
+            <ol>
+              <li>正在或曾經使用抗骨質再吸收藥物或抗血管新生藥物</li>
+              <li>暴露的顎骨或可經由口內或口外瘺管探測到的顎骨病灶持續超過8週</li>
+              <li>無頭頸部放射治療病史或無明確的顎骨轉移</li>
+            </ol>
+          </div>
+          
+          ${medicationEducationContent}
+          
+          <div class="education-section">
+            <h3>如何降低風險?</h3>
+            <ul>
+              <li><strong>維持良好口腔衛生</strong>：每日刷牙兩次、使用牙線、定期洗牙</li>
+              <li><strong>定期牙科檢查</strong>：至少每六個月一次</li>
+              <li><strong>告知您的牙醫</strong>：任何牙科治療前都要告知正在使用的藥物</li>
+              <li><strong>避免不必要的侵入性牙科手術</strong>：尤其是在高風險患者</li>
+              <li><strong>戒菸</strong>：吸煙會增加MRONJ風險</li>
+              <li><strong>妥善控制慢性疾病</strong>：如糖尿病</li>
+            </ul>
+          </div>
+          
+          <div class="education-section">
+            <h3>牙醫師的角色</h3>
+            <p>在MRONJ的預防和管理中，牙醫師扮演著關鍵角色：</p>
+            <ul>
+              <li>識別高風險患者並提供個性化的預防策略</li>
+              <li>在開始抗骨質再吸收藥物治療前進行全面的口腔評估和必要治療</li>
+              <li>為高風險患者設計適當的牙科治療計畫</li>
+              <li>與處方抗骨質再吸收藥物的醫師保持良好溝通</li>
+            </ul>
+            <p>若您需要牙科手術，牙醫師可能會與您的主治醫師討論是否需要暫停用藥（藥物假期）。</p>
+          </div>
+          
+          <div class="education-section">
+            <h3>需要注意的徵兆</h3>
+            <p>若您出現以下症狀，請立即就醫：</p>
+            <ul>
+              <li>口腔疼痛或腫脹</li>
+              <li>牙齦紅腫或出血</li>
+              <li>口腔中有暴露的骨頭</li>
+              <li>牙齒鬆動</li>
+              <li>口臭</li>
+              <li>下巴麻木或沉重感</li>
+            </ul>
+          </div>
+        </div>
 
         <div class="page-break"></div>
         <div class="section privacy-policy">

@@ -34,6 +34,20 @@ export type DrugName =
   | 'Cabozantinib (Cabometyx)'
   | '';
 
+// Add interface for medication tracking
+export interface Medication {
+  drugName: DrugName;
+  administrationRoute: '口服' | '注射' | '';
+  indication: '骨質疏鬆' | '惡性腫瘤/骨轉移' | '多發性骨髓瘤' | '其他' | '';
+  startYear: string;
+  startMonth: string;
+  frequency: '每天' | '每個月' | '每半年' | '';
+  isStopped: boolean;
+  stopYear: string;
+  stopMonth: string;
+  durationMonths?: number; // Calculated field for risk assessment
+}
+
 export interface PatientData {
   // Personal Info
   name: string;
@@ -61,13 +75,23 @@ export interface PatientData {
   medicationSubType: SubType;
   drugName: DrugName;
   administrationRoute: '口服' | '注射' | '';
-  indication: '骨質疏鬆' | '多發性骨髓瘤' | '骨轉移' | '其他' | '';
+  indication: '骨質疏鬆' | '惡性腫瘤/骨轉移' | '多發性骨髓瘤' | '其他' | '';
   startYear: string;
   startMonth: string;
   frequency: '每天' | '每個月' | '每半年' | '';
   isStopped: boolean;
   stopYear: string;
   stopMonth: string;
+
+  // MRONJ Specific Risk Factors
+  steroidUse: boolean;               // 類固醇使用
+  diabetes: boolean;                 // 糖尿病 (HbA1c > 6.5%)
+  anemia: boolean;                   // 貧血 (Hb <10 g/dL)
+  heavySmoker: boolean;              // 重度吸煙 (>10支煙/天)
+  periodontalIssues: boolean;        // 牙周病或自發性牙痛
+
+  // For tracking multiple medications
+  medications: Medication[];
 
   // Physical measurements
   height: string;  // in cm
@@ -80,6 +104,9 @@ interface PatientStore {
   patientData: PatientData;
   updatePatientInfo: (data: Partial<PatientData>) => void;
   resetPatientData: () => void;
+  addMedication: (medication: Medication) => void;
+  updateMedication: (index: number, medication: Partial<Medication>) => void;
+  removeMedication: (index: number) => void;
 }
 
 const initialState: PatientData = {
@@ -111,6 +138,14 @@ const initialState: PatientData = {
   isStopped: false,
   stopYear: '',
   stopMonth: '',
+  // Initialize MRONJ risk factors
+  steroidUse: false,
+  diabetes: false,
+  anemia: false,
+  heavySmoker: false,
+  periodontalIssues: false,
+  // Initialize medications array
+  medications: [],
   height: '',
   weight: '',
   bmi: null,
@@ -124,4 +159,28 @@ export const usePatientStore = create<PatientStore>((set: any) => ({
       patientData: { ...state.patientData, ...data } 
     })),
   resetPatientData: () => set({ patientData: initialState }),
+  // Add methods for managing medications
+  addMedication: (medication: Medication) =>
+    set((state: PatientStore) => ({
+      patientData: {
+        ...state.patientData,
+        medications: [...state.patientData.medications, medication]
+      }
+    })),
+  updateMedication: (index: number, medication: Partial<Medication>) =>
+    set((state: PatientStore) => ({
+      patientData: {
+        ...state.patientData,
+        medications: state.patientData.medications.map((med, i) =>
+          i === index ? { ...med, ...medication } : med
+        )
+      }
+    })),
+  removeMedication: (index: number) =>
+    set((state: PatientStore) => ({
+      patientData: {
+        ...state.patientData,
+        medications: state.patientData.medications.filter((_, i) => i !== index)
+      }
+    })),
 })); 

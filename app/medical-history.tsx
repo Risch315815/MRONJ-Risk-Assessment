@@ -11,8 +11,7 @@ export default function MedicalHistory() {
   const systemicDiseaseOptions = [
     { label: '無', value: '無' },
     { label: '高血壓', value: '高血壓' },
-    { label: '心臟支架', value: '心臟支架' },
-    { label: '糖尿病', value: '糖尿病' },
+    { label: '心臟血管疾病', value: '心臟血管疾病' },
     { label: '洗腎', value: '洗腎' },
     { label: 'A型肝炎', value: 'A型肝炎' },
     { label: 'B型肝炎', value: 'B型肝炎' },
@@ -171,6 +170,11 @@ export default function MedicalHistory() {
     }
 
     updatePatientInfo({ systemicDiseases: newDiseases });
+    
+    // Update diabetes flag if selecting diabetes
+    if (disease === '糖尿病') {
+      updatePatientInfo({ diabetes: !currentDiseases.includes('糖尿病') });
+    }
   };
 
   return (
@@ -339,6 +343,166 @@ export default function MedicalHistory() {
                   <Text style={styles.checkboxLabel}>{disease.label}</Text>
                 </TouchableOpacity>
               ))}
+            </View>
+          </View>
+
+          {/* MRONJ-Specific Risk Factors Section */}
+          <View style={styles.riskFactorsSection}>
+            <Text style={styles.sectionTitle}>MRONJ風險因素</Text>
+            
+            {/* Poorly Controlled Diabetes - new dedicated question */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>是否有控制不佳之糖尿病 (HbA1c ≥ 7.0%)</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity 
+                  style={[
+                    styles.radioButton,
+                    patientData.diabetes && styles.radioButtonSelected
+                  ]}
+                  onPress={() => updatePatientInfo({ diabetes: true })}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    patientData.diabetes && styles.radioTextSelected
+                  ]}>是</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.radioButton,
+                    patientData.diabetes === false && styles.radioButtonSelected
+                  ]}
+                  onPress={() => updatePatientInfo({ diabetes: false })}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    patientData.diabetes === false && styles.radioTextSelected
+                  ]}>否</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            
+            {/* Steroid Use */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>是否長期使用類固醇？</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity 
+                  style={[
+                    styles.radioButton,
+                    patientData.steroidUse && styles.radioButtonSelected
+                  ]}
+                  onPress={() => updatePatientInfo({ steroidUse: true })}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    patientData.steroidUse && styles.radioTextSelected
+                  ]}>是</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.radioButton,
+                    patientData.steroidUse === false && styles.radioButtonSelected
+                  ]}
+                  onPress={() => updatePatientInfo({ steroidUse: false })}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    patientData.steroidUse === false && styles.radioTextSelected
+                  ]}>否</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Anemia */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>是否有貧血 (Hb &lt;10 g/dL)？</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity 
+                  style={[
+                    styles.radioButton,
+                    patientData.anemia && styles.radioButtonSelected
+                  ]}
+                  onPress={() => updatePatientInfo({ anemia: true })}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    patientData.anemia && styles.radioTextSelected
+                  ]}>是</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.radioButton,
+                    patientData.anemia === false && styles.radioButtonSelected
+                  ]}
+                  onPress={() => updatePatientInfo({ anemia: false })}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    patientData.anemia === false && styles.radioTextSelected
+                  ]}>否</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Heavy Smoker */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>是否為重度吸煙者 (&gt;10支煙/天)？</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity 
+                  style={[
+                    styles.radioButton,
+                    patientData.heavySmoker && styles.radioButtonSelected
+                  ]}
+                  onPress={() => updatePatientInfo({ heavySmoker: true })}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    patientData.heavySmoker && styles.radioTextSelected
+                  ]}>是</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.radioButton,
+                    patientData.heavySmoker === false && styles.radioButtonSelected
+                  ]}
+                  onPress={() => updatePatientInfo({ heavySmoker: false })}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    patientData.heavySmoker === false && styles.radioTextSelected
+                  ]}>否</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Periodontal Issues */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>是否有牙周病或自發性牙痛？</Text>
+              <View style={styles.radioGroup}>
+                <TouchableOpacity 
+                  style={[
+                    styles.radioButton,
+                    patientData.periodontalIssues && styles.radioButtonSelected
+                  ]}
+                  onPress={() => updatePatientInfo({ periodontalIssues: true })}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    patientData.periodontalIssues && styles.radioTextSelected
+                  ]}>是</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.radioButton,
+                    patientData.periodontalIssues === false && styles.radioButtonSelected
+                  ]}
+                  onPress={() => updatePatientInfo({ periodontalIssues: false })}
+                >
+                  <Text style={[
+                    styles.radioText,
+                    patientData.periodontalIssues === false && styles.radioTextSelected
+                  ]}>否</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -617,6 +781,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#ddd',
+  },
+  riskFactorsSection: {
+    backgroundColor: '#f0f7ff',
+    padding: 15,
+    borderRadius: 10,
+    marginVertical: 15,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#007AFF',
+    marginBottom: 15,
   },
 });
 
