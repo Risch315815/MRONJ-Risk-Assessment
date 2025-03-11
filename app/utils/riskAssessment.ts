@@ -173,6 +173,7 @@ function getDrugSpecificCitations(medication: Medication): string[] {
   
   // Add general citation for all drugs
   citations.push('Palaska PK, et al. Bisphosphonates and time to osteonecrosis development. Oncologist. 2009;14(11):1154-1166.');
+  citations.push('Ruggiero, S. L., Dodson, T. B., Aghaloo, T., Carlson, E. R., Ward, B. B., & Kademani, D. (2022). American Association of Oral and Maxillofacial Surgeons Position Paper on Medication-Related Osteonecrosis of the Jaws-2022 Update. Journal of oral and maxillofacial surgery : official journal of the American Association of Oral and Maxillofacial Surgeons, 80(5), 920–943.');
   
   return citations;
 }
@@ -235,7 +236,7 @@ export function assessRisk(patientData: PatientData): RiskAssessment[] {
         recommendation = '可進行治療，但應注意口腔衛生並定期追蹤。';
       } else {
         riskLevel = '低風險';
-        recommendation = '可進行常規治療，無須特殊預防措施。';
+        recommendation = '可進行常規治療。';
       }
     } else if (procedure === '根管治療') {
       // Moderate risk for root canal treatment
@@ -244,7 +245,7 @@ export function assessRisk(patientData: PatientData): RiskAssessment[] {
         recommendation = '可進行治療，但應避免過度器械擴大根尖孔，並謹慎使用根管沖洗液。';
       } else {
         riskLevel = '低風險';
-        recommendation = '可進行常規治療，注意根管消毒清潔。';
+        recommendation = '可進行常規治療。';
       }
     } else {
       // Higher risk for invasive procedures
@@ -268,9 +269,8 @@ export function assessRisk(patientData: PatientData): RiskAssessment[] {
       } else {
         riskLevel = '低風險';
         recommendation = '可進行常規治療，但需要：\n' +
-                         '1. 告知風險並簽署同意書\n' +
-                         '2. 維持良好口腔衛生\n' +
-                         '3. 定期追蹤';
+                         '1. 維持良好口腔衛生\n' +
+                         '2. 定期追蹤';
       }
     }
     

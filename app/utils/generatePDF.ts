@@ -125,8 +125,87 @@ const getRiskFactorExplanations = (patientData: PatientData) => {
     '';
 };
 
+// New function to generate pre-treatment dental evaluation suggestions HTML
+const getPreTreatmentSuggestionsHTML = (patientData: PatientData) => {
+  const suggestions = [
+    {
+      title: '拔除不可修復的牙齒',
+      description: '在開始抗骨質再吸收藥物治療前，應評估所有不可修復的牙齒並進行拔除。這樣可以避免日後在藥物治療期間進行侵入性牙科手術。',
+      priority: '高優先'
+    },
+    {
+      title: '治療牙周疾病',
+      description: '牙周炎症是MRONJ的重要風險因素。在開始藥物治療前，應治療任何活動性牙周疾病，並建立良好的口腔衛生習慣。',
+      priority: '高優先'
+    },
+    {
+      title: '完成必要的根管治療',
+      description: '檢查任何有症狀的牙齒或需要根管治療的牙齒，並在開始藥物治療前完成治療。',
+      priority: '中優先'
+    },
+    {
+      title: '修復有問題的假牙',
+      description: '檢查並調整任何磨損過度的假牙或不適合的義齒，以防止口腔黏膜損傷，這可能成為骨暴露的起始點。',
+      priority: '中優先'
+    },
+    {
+      title: '全面口腔檢查',
+      description: '進行全口牙科X光檢查，評估是否有隱藏的牙科問題，如囊腫、病灶或阻生牙等。',
+      priority: '標準'
+    },
+    {
+      title: '制定長期口腔保健計劃',
+      description: '與牙醫討論並制定長期的口腔健康維護計劃，包括定期檢查、專業清潔的頻率以及優化居家口腔衛生的方法。',
+      priority: '標準'
+    }
+  ];
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case '高優先': return '#FF3B30';
+      case '中優先': return '#FF9500';
+      case '標準': return '#34C759';
+      default: return '#000000';
+    }
+  };
+
+  return `
+    <div class="section">
+      <h2>開始使用抗骨質再吸收藥物前的口腔評估建議</h2>
+      
+      <p class="intro-text">根據2022年美國口腔顎面外科學會(AAOMS)指南，在開始抗骨質再吸收藥物治療前，建議您進行以下口腔評估和治療：</p>
+      
+      ${suggestions.map(suggestion => `
+        <div class="assessment">
+          <h3>${suggestion.title}</h3>
+          <p class="priority-badge" style="color: ${getPriorityColor(suggestion.priority)}; font-weight: bold;">
+            ${suggestion.priority}
+          </p>
+          <p>${suggestion.description}</p>
+        </div>
+      `).join('')}
+      
+      <div class="info-box">
+        <h3>重要提醒</h3>
+        <p>
+          研究顯示，在開始抗骨質再吸收藥物治療前進行全面的口腔評估和治療，可顯著降低日後發生MRONJ的風險。建議您在開始用藥前至少4週完成所有必要的侵入性牙科治療，讓骨組織有足夠的時間癒合。
+        </p>
+        <p>
+          如果您計劃使用的藥物是：<strong>${patientData.futureMedicationName || '(尚未指定)'}</strong><br>
+          使用原因：<strong>${patientData.futureMedicationReason || '(尚未指定)'}</strong><br>
+          預計開始時間：<strong>${patientData.futureMedicationStartYear ? `${patientData.futureMedicationStartYear}年${patientData.futureMedicationStartMonth}月` : '(尚未指定)'}</strong>
+        </p>
+      </div>
+    </div>
+  `;
+};
+
 // Main function to generate HTML content for PDF
 const generateHTML = (patientData: PatientData) => {
+  // Check if user is about to start medication
+  const isAboutToStartMedication = !patientData.hasAntiresorptiveMed && 
+    patientData.medicationStatus === '過去未曾使用，即將開始使用';
+  
   const riskAssessments = assessRisk(patientData);
   
   // Format date as yyyy年mm月dd日
@@ -229,6 +308,22 @@ const generateHTML = (patientData: PatientData) => {
             margin-bottom: 8px;
             border-radius: 5px;
           }
+          .info-box {
+            background-color: #e8f4ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+          }
+          .priority-badge {
+            display: inline-block;
+            margin: 5px 0;
+            font-weight: bold;
+          }
+          .intro-text {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+          }
           .privacy-policy {
             margin: 20px 0;
             line-height: 1.6;
@@ -302,75 +397,91 @@ const generateHTML = (patientData: PatientData) => {
 
         <div class="section">
           <h2>用藥紀錄</h2>
-          ${patientData.hasAntiresorptiveMed ? 
-            patientData.medications.length > 0 ? 
-              `<div class="medication-list">
-                ${patientData.medications.map((med, index) => `
-                  <div class="medication-item">
-                    <p><strong>藥物 ${index+1}:</strong> ${med.drugName}</p>
-                    <p>使用方式: ${med.administrationRoute}</p>
-                    <p>使用原因: ${med.indication}</p>
-                    <p>開始時間: ${med.startYear}年${med.startMonth}月</p>
-                    <p>使用頻率: ${med.frequency}</p>
-                    ${med.isStopped ? 
-                      `<p>停藥時間: ${med.stopYear}年${med.stopMonth}月</p>` : 
-                      '<p>目前持續使用中</p>'
-                    }
-                    <p>使用期間: ${med.durationMonths ? `約${med.durationMonths}個月` : '計算中'}</p>
-                  </div>
-                `).join('')}
-              </div>`
-              : 
-              `<p>藥物名稱: ${patientData.drugName}</p>
-              <p>使用方式: ${patientData.administrationRoute}</p>
-              <p>使用原因: ${patientData.indication}</p>
-              <p>開始時間: ${patientData.startYear}年${patientData.startMonth}月</p>
-              <p>使用頻率: ${patientData.frequency}</p>
-              ${patientData.isStopped ? 
-                `<p>停藥時間: ${patientData.stopYear}年${patientData.stopMonth}月</p>` : 
-                '<p>目前持續使用中</p>'
-              }`
-            : '<p>無使用相關藥物</p>'
+          ${isAboutToStartMedication ? 
+            `<p>目前尚未使用抗骨質再吸收藥物，預計將開始使用：</p>
+             <div class="medication-item">
+               <p><strong>預計使用藥物:</strong> ${patientData.futureMedicationName || '未指定'}</p>
+               <p><strong>使用方式:</strong> ${patientData.futureMedicationRoute || '未指定'}</p>
+               <p><strong>使用原因:</strong> ${patientData.futureMedicationReason || '未指定'}</p>
+               <p><strong>預計開始時間:</strong> ${patientData.futureMedicationStartYear ? `${patientData.futureMedicationStartYear}年${patientData.futureMedicationStartMonth}月` : '未指定'}</p>
+             </div>`
+            :
+            patientData.hasAntiresorptiveMed ? 
+              patientData.medications.length > 0 ? 
+                `<div class="medication-list">
+                  ${patientData.medications.map((med, index) => `
+                    <div class="medication-item">
+                      <p><strong>藥物 ${index+1}:</strong> ${med.drugName}</p>
+                      <p>使用方式: ${med.administrationRoute}</p>
+                      <p>使用原因: ${med.indication}</p>
+                      <p>開始時間: ${med.startYear}年${med.startMonth}月</p>
+                      <p>使用頻率: ${med.frequency}</p>
+                      ${med.isStopped ? 
+                        `<p>停藥時間: ${med.stopYear}年${med.stopMonth}月</p>` : 
+                        '<p>目前持續使用中</p>'
+                      }
+                      <p>使用期間: ${med.durationMonths ? `約${med.durationMonths}個月` : '計算中'}</p>
+                    </div>
+                  `).join('')}
+                </div>`
+                : 
+                `<p>藥物名稱: ${patientData.drugName}</p>
+                <p>使用方式: ${patientData.administrationRoute}</p>
+                <p>使用原因: ${patientData.indication}</p>
+                <p>開始時間: ${patientData.startYear}年${patientData.startMonth}月</p>
+                <p>使用頻率: ${patientData.frequency}</p>
+                ${patientData.isStopped ? 
+                  `<p>停藥時間: ${patientData.stopYear}年${patientData.stopMonth}月</p>` : 
+                  '<p>目前持續使用中</p>'
+                }`
+              : '<p>無使用相關藥物</p>'
           }
         </div>
 
         <div class="page-break"></div>
-        <div class="section">
-          <h2>風險評估結果</h2>
-          ${riskAssessments.map(assessment => `
-            <div class="assessment">
-              <h3>${assessment.procedure}</h3>
-              <p class="risk-${assessment.riskLevel === '高風險' ? 'high' : 
-                            assessment.riskLevel === '中度風險' ? 'medium' : 'low'}">
-                風險程度: ${assessment.riskLevel}
-              </p>
-              ${assessment.medicationContributions ? 
-                `<p>藥物風險貢獻:</p>
-                <ul>
-                  ${assessment.medicationContributions.map(med => 
-                    `<li>${med.drugName}: ${med.riskPercentage.toFixed(2)}%</li>`
-                  ).join('')}
-                </ul>` : ''
-              }
-              <p>建議: ${assessment.recommendation}</p>
-              ${assessment.procedure === '拔牙' && patientData.periodontalIssues ? 
-                `<p class="warning">警告：您有牙周炎症問題，這會顯著增加MRONJ風險。建議先治療牙周疾病再考慮手術。</p>` : ''
-              }
+        
+        ${isAboutToStartMedication ? 
+          // Show pre-treatment dental evaluation suggestions
+          getPreTreatmentSuggestionsHTML(patientData)
+          : 
+          // Show normal risk assessment
+          `<div class="section">
+            <h2>風險評估結果</h2>
+            ${riskAssessments.map(assessment => `
+              <div class="assessment">
+                <h3>${assessment.procedure}</h3>
+                <p class="risk-${assessment.riskLevel === '高風險' ? 'high' : 
+                              assessment.riskLevel === '中度風險' ? 'medium' : 'low'}">
+                  風險程度: ${assessment.riskLevel}
+                </p>
+                ${assessment.medicationContributions ? 
+                  `<p>藥物風險貢獻:</p>
+                  <ul>
+                    ${assessment.medicationContributions.map(med => 
+                      `<li>${med.drugName}: ${med.riskPercentage.toFixed(2)}%</li>`
+                    ).join('')}
+                  </ul>` : ''
+                }
+                <p>建議: ${assessment.recommendation}</p>
+                ${assessment.procedure === '拔牙' && patientData.periodontalIssues ? 
+                  `<p class="warning">警告：您有牙周炎症問題，這會顯著增加MRONJ風險。建議先治療牙周疾病再考慮手術。</p>` : ''
+                }
+              </div>
+            `).join('')}
+            
+            ${riskFactorExplanations}
+            
+            <div class="citations-section">
+              <h3>學術文獻參考</h3>
+              <ol>
+                ${Array.from(new Set(riskAssessments.flatMap(a => a.citations || []))).map(citation => 
+                  `<li>${citation}</li>`
+                ).join('')}
+                <li>Ruggiero SL, et al. American Association of Oral and Maxillofacial Surgeons position paper on medication-related osteonecrosis of the jaw—2022 update. J Oral Maxillofac Surg. 2022;80(5):920-943.</li>
+              </ol>
             </div>
-          `).join('')}
-          
-          ${riskFactorExplanations}
-          
-          <div class="citations-section">
-            <h3>學術文獻參考</h3>
-            <ol>
-              ${Array.from(new Set(riskAssessments.flatMap(a => a.citations || []))).map(citation => 
-                `<li>${citation}</li>`
-              ).join('')}
-              <li>Ruggiero SL, et al. American Association of Oral and Maxillofacial Surgeons position paper on medication-related osteonecrosis of the jaw—2022 update. J Oral Maxillofac Surg. 2022;80(5):920-943.</li>
-            </ol>
-          </div>
-        </div>
+          </div>`
+        }
 
         <div class="page-break"></div>
         <div class="section">
@@ -393,13 +504,27 @@ const generateHTML = (patientData: PatientData) => {
           <div class="education-section">
             <h3>如何降低風險?</h3>
             <ul>
-              <li><strong>維持良好口腔衛生</strong>：每日刷牙兩次、使用牙線、定期洗牙</li>
-              <li><strong>定期牙科檢查</strong>：至少每六個月一次</li>
-              <li><strong>告知您的牙醫</strong>：任何牙科治療前都要告知正在使用的藥物</li>
-              <li><strong>避免不必要的侵入性牙科手術</strong>：尤其是在高風險患者</li>
-              <li><strong>戒菸</strong>：吸煙會增加MRONJ風險</li>
-              <li><strong>妥善控制慢性疾病</strong>：如糖尿病</li>
+              <li><strong>定期牙科就診</strong>：每3-6個月進行口腔檢查和洗牙。及早發現牙齒或牙齦感染可避免需要拔牙或手術的情況，從而降低MRONJ風險。</li>
+              <li><strong>維持良好口腔衛生</strong>：每日刷牙至少兩次、使用牙線清潔牙間隙、使用醫師建議的抗菌漱口水。牙周疾病等炎症狀況是MRONJ的主要風險因素。</li>
+              <li><strong>避免不必要的拔牙</strong>：侵入性牙槽手術可能引發MRONJ。與您的牙醫討論是否可採用保守治療方法（如根管治療或部分牙冠切除術），而非拔除牙齒。</li>
+              <li><strong>及時報告疼痛或腫脹</strong>：如果您注意到異常的顎骨疼痛、不癒合的潰瘍或腫脹，請立即就醫。早期發現潛在的顎骨問題可及時處理，防止更嚴重的併發症。</li>
+              <li><strong>與醫療團隊協調</strong>：MRONJ風險在接受靜脈注射治療的癌症患者中最高。腫瘤科醫師、牙醫和口腔外科醫師的合作能確保做出平衡的決策。</li>
+              <li><strong>生活方式因素</strong>：戒煙（特別是重度吸煙者），良好控制糖尿病，這些都能改善骨骼癒合。</li>
+              <li><strong>藥物假期</strong>：在侵入性牙科手術前暫停用藥的概念仍存在爭議，不一定適用於所有患者。請與開藥醫師和牙醫討論，不要自行停藥，特別是Denosumab類藥物，因可能導致反彈性骨折風險。</li>
             </ul>
+          </div>
+          
+          <div class="education-section">
+            <h3>對即將開始使用抗骨質再吸收藥物的患者建議</h3>
+            <p>如果您即將開始使用抗骨質再吸收藥物，請在開始用藥前完成以下預防措施：</p>
+            <ul>
+              <li><strong>治療前牙科篩檢</strong>：在開始藥物治療前，進行全面的口腔檢查和必要的治療。</li>
+              <li><strong>完成需要的拔牙</strong>：對於無法保留的牙齒，應在開始用藥前完成拔除。</li>
+              <li><strong>處理口腔感染</strong>：治療任何活動性口腔感染或不良修復體。</li>
+              <li><strong>牙周病治療</strong>：處理任何牙周病問題，減少日後的炎症風險。</li>
+              <li><strong>制定長期口腔健康計劃</strong>：與牙醫師討論長期的口腔保健策略，包括定期檢查和專業清潔的頻率。</li>
+            </ul>
+            <p>研究表明，在開始抗骨質再吸收藥物治療前進行全面口腔評估和必要治療，可顯著降低後期發生MRONJ的風險。</p>
           </div>
           
           <div class="education-section">

@@ -16,6 +16,23 @@ interface MedicationGroup {
 export default function MedicationHistory() {
   const { patientData, updatePatientInfo, addMedication, updateMedication, removeMedication } = usePatientStore();
   const [dateError, setDateError] = useState<string>('');
+  
+  // Update the initialization to properly handle both values
+  const [medicationStatus, setMedicationStatus] = useState<'使用中/過去曾使用' | '過去未曾使用，即將開始使用' | ''>(
+    patientData.medicationStatus === '過去未曾使用，即將開始使用' 
+      ? '過去未曾使用，即將開始使用' 
+      : '使用中/過去曾使用'
+  );
+  
+  // Initialize medication states with existing values from patientData
+  const [futureMedicationPlan, setFutureMedicationPlan] = useState({
+    reason: patientData.futureMedicationReason || '',
+    drugName: patientData.futureMedicationName || '',
+    startYear: patientData.futureMedicationStartYear || '',
+    startMonth: patientData.futureMedicationStartMonth || ''
+  });
+
+  // Initialize with existing values if editing a medication
   const [currentMedication, setCurrentMedication] = useState<Partial<Medication>>({
     drugName: '',
     administrationRoute: '',
@@ -61,28 +78,44 @@ export default function MedicationHistory() {
   // Update medicationGroups with proper typing
   const medicationGroups: MedicationGroup[] = [
     {
-      title: '雙磷酸鹽類藥物',
+      title: '雙磷酸鹽類藥物 (口服)',
       medications: [
         { name: 'Alendronate (Fosamax)', route: '口服' },
         { name: 'Risedronate (Actonel)', route: '口服' },
-        { name: 'Ibandronate (Boniva)', route: '注射' },
+        { name: 'Ibandronate (Boniva)', route: '口服' },
+      ]
+    },
+    {
+      title: '雙磷酸鹽類藥物 (注射)',
+      medications: [
+        { name: 'Zoledronate (Zometa)', route: '注射' },
+        { name: 'Zoledronate (Reclast)', route: '注射' },
+        { name: 'Pamidronate (Aredia)', route: '注射' },
+        { name: 'Ibandronate (Boniva IV)', route: '注射' },
+      ]
+    },
+    {
+      title: 'RANK-L 抑制劑',
+      medications: [
+        { name: 'Denosumab (Prolia)', route: '注射' },
+        { name: 'Denosumab (Xgeva)', route: '注射' },
       ]
     },
     {
       title: '單株抗體藥物',
       medications: [
-        { name: 'Denosumab (Prolia/Xgeva)', route: '注射' },
-      ]
-    },
-    {
-      title: '其他抗骨吸收藥物',
-      medications: [
-        { name: 'Bevacizumab (Avastin)', route: '注射' },
-        { name: 'Sunitinib (Sutent)', route: '口服' },
-        { name: 'Cabozantinib (Cabometyx)', route: '口服' },
+        { name: 'Romosozumab (Evenity)', route: '注射' },
       ]
     }
   ];
+
+  // Add a note about other medications with weaker evidence
+  const otherMedicationsNote = `如果有服用以下任一類藥物
+  - raloxifene (Evista)
+  - teriparatide (Forteo)
+  - Bevacizumab
+  - Sunitinib
+  請諮詢您的醫師評估MRONJ風險。`;
 
   const handleDrugSelection = (drugName: DrugName, route: '口服' | '注射') => {
     setCurrentMedication({
@@ -93,17 +126,9 @@ export default function MedicationHistory() {
   };
 
   const handleReasonSelection = (reason: '骨質疏鬆' | '惡性腫瘤/骨轉移' | '多發性骨髓瘤' | '其他') => {
-    // Convert the UI value to the value expected by the type system
-    let indicationValue: '骨質疏鬆' | '惡性腫瘤/骨轉移'| '多發性骨髓瘤'  | '其他' = reason as any;
-    
-    // Map "惡性腫瘤/骨轉移" to "骨轉移" for type compatibility
-    if (reason === '惡性腫瘤/骨轉移') {
-      indicationValue = '惡性腫瘤/骨轉移';
-    }
-    
     setCurrentMedication({
       ...currentMedication,
-      indication: indicationValue
+      indication: reason
     });
   };
 
@@ -252,6 +277,12 @@ export default function MedicationHistory() {
       addMedication(medicationToAdd);
     }
 
+    // Ensure the appropriate flags are set
+    updatePatientInfo({
+      hasAntiresorptiveMed: true,
+      medicationStatus: '使用中/過去曾使用'
+    });
+
     // Clear form
     setCurrentMedication({
       drugName: '',
@@ -306,90 +337,186 @@ export default function MedicationHistory() {
     );
   };
 
-  // Update the submit handler
+  // Update the submit handler to check both status values and add current medication
   const handleSubmit = () => {
-    // If there's a current medication being edited, try to save it first
-    if (currentMedication.drugName && !editingMedicationIndex && isValidMedication(currentMedication)) {
-      // Calculate duration in months for risk assessment
-      const startDate = new Date(
-        parseInt(currentMedication.startYear!),
-        parseInt(currentMedication.startMonth!) - 1
-      );
-      
-      const endDate = currentMedication.isStopped && currentMedication.stopYear && currentMedication.stopMonth
-        ? new Date(
-            parseInt(currentMedication.stopYear),
-            parseInt(currentMedication.stopMonth) - 1
-          )
-        : new Date();
-      
-      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-      const durationMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
-
-      const medicationToAdd = {
-        ...currentMedication,
-        durationMonths
-      } as Medication;
-
-      // Add this medication to the list
-      addMedication(medicationToAdd);
-    }
-
-    // Check if we have at least one medication
-    if (patientData.medications.length === 0 && !isValidMedication(currentMedication)) {
-      Alert.alert('錯誤', '請至少添加一種藥物');
-      return;
-    }
-
-    // Validate all medications dates
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth() + 1; // JavaScript months are 0-indexed
-    
-    const hasInvalidDates = patientData.medications.some((med, index) => {
-      // Convert to numbers for comparison
-      const startYear = parseInt(med.startYear);
-      const startMonth = parseInt(med.startMonth);
-      
-      // Check if start date is in the future
-      if (startYear > currentYear || (startYear === currentYear && startMonth > currentMonth)) {
-        Alert.alert('日期錯誤', `藥物 #${index + 1}: 開始時間不能晚於現在`);
-        return true;
-      }
-      
-      // Check stop date if medication is stopped
-      if (med.isStopped) {
-        const stopYear = parseInt(med.stopYear);
-        const stopMonth = parseInt(med.stopMonth);
-        
-        // Check if stop date is before start date
-        if (stopYear < startYear || (stopYear === startYear && stopMonth < startMonth)) {
-          Alert.alert('日期錯誤', `藥物 #${index + 1}: 停藥時間不能早於開始時間`);
-          return true;
+    // For users with current/past medication use
+    if (medicationStatus === '使用中/過去曾使用') {
+      // Check if the user has entered medication information (even partially)
+      if (currentMedication.drugName) {
+        // Validate first
+        if (!isValidMedication(currentMedication)) {
+          Alert.alert(
+            '請完整填寫用藥資訊',
+            '藥物名稱、使用原因、開始時間和頻率為必填項目',
+            [{ text: '確定' }]
+          );
+          return;
         }
         
-        // Check if stop date is in the future
-        if (stopYear > currentYear || (stopYear === currentYear && stopMonth > currentMonth)) {
-          Alert.alert('日期錯誤', `藥物 #${index + 1}: 停藥時間不能晚於現在`);
-          return true;
+        // Save the current medication before proceeding
+        try {
+          // Add the medication to the list
+          const startDate = new Date(
+            parseInt(currentMedication.startYear!),
+            parseInt(currentMedication.startMonth!) - 1
+          );
+          
+          const endDate = currentMedication.isStopped && currentMedication.stopYear && currentMedication.stopMonth
+            ? new Date(
+                parseInt(currentMedication.stopYear),
+                parseInt(currentMedication.stopMonth) - 1
+              )
+            : new Date();
+          
+          const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+          const durationMonths = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 30));
+
+          const medicationToAdd = {
+            ...currentMedication,
+            durationMonths
+          } as Medication;
+
+          if (editingMedicationIndex !== null) {
+            // Update existing medication
+            updateMedication(editingMedicationIndex, medicationToAdd);
+          } else {
+            // Add new medication
+            addMedication(medicationToAdd);
+          }
+
+          // Update general medication flags
+          updatePatientInfo({
+            hasAntiresorptiveMed: true,
+            medicationStatus: '使用中/過去曾使用'
+          });
+          
+          // Navigate to the medication summary page after saving
+          router.push('/medication-summary');
+          return;
+        } catch (error) {
+          console.error('Error saving medication:', error);
+          Alert.alert(
+            '儲存藥物資訊時發生錯誤',
+            '請稍後再試',
+            [{ text: '確定' }]
+          );
+          return;
         }
+      } else if (patientData.medications.length === 0) {
+        // If no medication is being entered AND there are no saved medications
+        Alert.alert(
+          '未添加藥物',
+          '請添加至少一種您正在使用或曾經使用的藥物',
+          [{ text: '確定' }]
+        );
+        return;
       }
-      
-      return false;
-    });
-    
-    if (hasInvalidDates) {
-      return;
+      // If there are already medications in the list but no new one being entered, proceed
     }
     
-    // If all validations pass, update patient data to have antiresorptive medication
-    updatePatientInfo({
-      hasAntiresorptiveMed: true
-    });
+    // For future medication users, ensure their info is saved
+    if (medicationStatus === '過去未曾使用，即將開始使用') {
+      // Validate and save future medication plan
+      if (!futureMedicationPlan.drugName || !futureMedicationPlan.reason || !futureMedicationPlan.startYear || !futureMedicationPlan.startMonth) {
+        Alert.alert(
+          '請完整填寫藥物計劃',
+          '藥物名稱、使用原因和預計開始時間為必填項目',
+          [{ text: '確定' }]
+        );
+        return;
+      }
+      
+      // Save the future medication plan
+      updateFutureMedicationPlan();
+    }
     
     // Navigate to the medication summary page
     router.push('/medication-summary');
   };
+
+  // Update patientData when medication status changes
+  const handleMedicationStatusChange = (status: '使用中/過去曾使用' | '過去未曾使用，即將開始使用') => {
+    setMedicationStatus(status);
+    if (status === '使用中/過去曾使用') {
+      updatePatientInfo({ 
+        medicationStatus: status,
+        hasAntiresorptiveMed: true 
+      });
+      
+      // Initialize a default drug selection if none is selected
+      if (!currentMedication.drugName) {
+        const firstDrug = medicationGroups[0].medications[0];
+        setCurrentMedication({
+          ...currentMedication,
+          drugName: firstDrug.name,
+          administrationRoute: firstDrug.route
+        });
+      }
+    } else {
+      updatePatientInfo({ 
+        medicationStatus: status,
+        hasAntiresorptiveMed: false 
+      });
+    }
+  };
+
+  // Update future medication plan in patient data store
+  const updateFutureMedicationPlan = () => {
+    updatePatientInfo({
+      futureMedicationReason: futureMedicationPlan.reason,
+      futureMedicationName: futureMedicationPlan.drugName,
+      futureMedicationStartYear: futureMedicationPlan.startYear,
+      futureMedicationStartMonth: futureMedicationPlan.startMonth
+    });
+  };
+
+  // Update the future medication plan section
+  const handleFutureDrugSelection = (drugName: DrugName, route: '口服' | '注射') => {
+    setFutureMedicationPlan({
+      ...futureMedicationPlan,
+      drugName
+    });
+    updatePatientInfo({ 
+      futureMedicationName: drugName,
+      futureMedicationRoute: route 
+    });
+  };
+
+  const handleFutureReasonSelection = (reason: '骨質疏鬆' | '惡性腫瘤/骨轉移' | '多發性骨髓瘤' | '其他') => {
+    setFutureMedicationPlan({
+      ...futureMedicationPlan,
+      reason
+    });
+    updatePatientInfo({ futureMedicationReason: reason });
+  };
+
+  const handleFutureYearChange = (year: string) => {
+    setFutureMedicationPlan({
+      ...futureMedicationPlan,
+      startYear: year
+    });
+    updatePatientInfo({ futureMedicationStartYear: year });
+  };
+
+  const handleFutureMonthChange = (month: string) => {
+    setFutureMedicationPlan({
+      ...futureMedicationPlan,
+      startMonth: month
+    });
+    updatePatientInfo({ futureMedicationStartMonth: month });
+  };
+
+  // Ensure proper initialization of the medicationStatus in useEffect
+  useEffect(() => {
+    // Initialize medicationStatus from patientData if available
+    if (patientData.medicationStatus) {
+      setMedicationStatus(patientData.medicationStatus as '使用中/過去曾使用' | '過去未曾使用，即將開始使用');
+    } else if (patientData.hasAntiresorptiveMed || patientData.medications.length > 0) {
+      // If there's medication data but no explicit status, assume '使用中/過去曾使用'
+      setMedicationStatus('使用中/過去曾使用');
+      updatePatientInfo({ medicationStatus: '使用中/過去曾使用' });
+    }
+  }, [patientData.medicationStatus, patientData.hasAntiresorptiveMed, patientData.medications.length]);
 
   return (
     <ScrollView style={styles.container}>
@@ -397,38 +524,112 @@ export default function MedicationHistory() {
         <Text style={styles.title}>用藥紀錄</Text>
 
         <View style={styles.form}>
-          {/* Initial question */}
+          {/* Medication Status Selection */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>是否正在使用或曾經使用骨質疏鬆相關藥物？</Text>
             <View style={styles.radioGroup}>
-              <TouchableOpacity
-                style={[
-                  styles.radioButton,
-                  patientData.hasAntiresorptiveMed && styles.radioButtonSelected
-                ]}
-                onPress={() => updatePatientInfo({ hasAntiresorptiveMed: true })}
-              >
-                <Text style={styles.radioText}>是</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.radioButton,
-                  !patientData.hasAntiresorptiveMed && styles.radioButtonSelected
-                ]}
-                onPress={() => {
-                  // Remove all medications when selecting "no"
-                  updatePatientInfo({ 
-                    hasAntiresorptiveMed: false,
-                    medications: []
-                  });
-                }}
-              >
-                <Text style={styles.radioText}>否</Text>
-              </TouchableOpacity>
+              {['使用中/過去曾使用', '過去未曾使用，即將開始使用'].map((status) => (
+                <TouchableOpacity
+                  key={status}
+                  style={[
+                    styles.reasonButton,
+                    medicationStatus === status && styles.reasonButtonSelected
+                  ]}
+                  onPress={() => handleMedicationStatusChange(status as '使用中/過去曾使用' | '過去未曾使用，即將開始使用')}
+                >
+                  <Text style={[
+                    styles.reasonText,
+                    medicationStatus === status && styles.reasonTextSelected
+                  ]}>{status}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
-          {patientData.hasAntiresorptiveMed && (
+          {/* Future Medication Plan for patients who will start medication */}
+          {medicationStatus === '過去未曾使用，即將開始使用' && (
+            <View style={styles.futureMedicationCard}>
+              <Text style={styles.subheading}>即將開始使用的藥物計劃</Text>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>使用原因</Text>
+                <View style={styles.radioGroup}>
+                  {['骨質疏鬆', '多發性骨髓瘤', '惡性腫瘤/骨轉移', '其他'].map((reason) => (
+                    <TouchableOpacity
+                      key={reason}
+                      style={[
+                        styles.reasonButton,
+                        futureMedicationPlan.reason === reason && styles.reasonButtonSelected
+                      ]}
+                      onPress={() => handleFutureReasonSelection(reason as '骨質疏鬆' | '惡性腫瘤/骨轉移' | '多發性骨髓瘤' | '其他')}
+                    >
+                      <Text style={[
+                        styles.reasonText,
+                        futureMedicationPlan.reason === reason && styles.reasonTextSelected
+                      ]}>{reason}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>預計使用的藥物</Text>
+                {medicationGroups.map((group, groupIndex) => (
+                  <View key={groupIndex} style={styles.medicationGroup}>
+                    <Text style={styles.groupTitle}>{group.title}</Text>
+                    <View style={styles.medicationsGrid}>
+                      {group.medications.map((med, medIndex) => (
+                        <TouchableOpacity
+                          key={medIndex}
+                          style={[
+                            styles.medicationButton,
+                            futureMedicationPlan.drugName === med.name && styles.medicationButtonSelected
+                          ]}
+                          onPress={() => handleFutureDrugSelection(med.name, med.route)}
+                        >
+                          <Text style={[
+                            styles.medicationText,
+                            futureMedicationPlan.drugName === med.name && styles.medicationTextSelected
+                          ]}>{med.name}</Text>
+                          <Text style={[
+                            styles.routeText,
+                            futureMedicationPlan.drugName === med.name && styles.medicationTextSelected
+                          ]}>({med.route})</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
+              
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>預計開始時間</Text>
+                <View style={styles.datePickerGroup}>
+                  <View style={[styles.pickerContainer, { flex: 1 }]}>
+                    <RNPickerSelect
+                      value={futureMedicationPlan.startYear}
+                      onValueChange={(value) => handleFutureYearChange(value)}
+                      items={yearOptions}
+                      style={pickerSelectStyles}
+                      placeholder={{ label: '年份', value: null }}
+                    />
+                  </View>
+                  <View style={[styles.pickerContainer, { flex: 1 }]}>
+                    <RNPickerSelect
+                      value={futureMedicationPlan.startMonth}
+                      onValueChange={(value) => handleFutureMonthChange(value)}
+                      items={monthOptions}
+                      style={pickerSelectStyles}
+                      placeholder={{ label: '月份', value: null }}
+                    />
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Existing Current Medication section - only show if status is "使用中/過去曾使用" */}
+          {medicationStatus === '使用中/過去曾使用' && (
             <>
               {/* List of added medications */}
               {patientData.medications.length > 0 && (
@@ -502,42 +703,140 @@ export default function MedicationHistory() {
                   ))}
                 </View>
 
-                {/* Usage Details */}
-                {currentMedication.drugName && (
-                  <>
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.label}>使用原因</Text>
-                      <View style={styles.radioGroup}>
-                        {['骨質疏鬆', '多發性骨髓瘤', '惡性腫瘤/骨轉移', '其他'].map((reason) => (
-                          <TouchableOpacity
-                            key={reason}
-                            style={[
-                              styles.reasonButton,
-                              currentMedication.indication === reason && styles.reasonButtonSelected
-                            ]}
-                            onPress={() => handleReasonSelection(reason as '骨質疏鬆' | '惡性腫瘤/骨轉移' | '多發性骨髓瘤' | '其他')}
-                          >
-                            <Text style={[
-                              styles.reasonText,
-                              currentMedication.indication === reason && styles.reasonTextSelected
-                            ]}>{reason}</Text>
-                          </TouchableOpacity>
-                        ))}
+                {/* Note about other medications with weaker evidence */}
+                <View style={styles.noteContainer}>
+                  <Text style={styles.noteText}>{otherMedicationsNote}</Text>
+                  <Text style={styles.disclaimerText}>本應用程式專注於2022年美國口腔顎面外科學會(AAOMS)認可的具有明確MRONJ風險證據的抗骨質再吸收藥物。對於其他藥物，請諮詢您的醫師。</Text>
+                </View>
+
+                {/* Usage Details - Always show these sections when "使用中/過去曾使用" is selected */}
+                <>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>使用原因</Text>
+                    <View style={styles.radioGroup}>
+                      {['骨質疏鬆', '多發性骨髓瘤', '惡性腫瘤/骨轉移', '其他'].map((reason) => (
+                        <TouchableOpacity
+                          key={reason}
+                          style={[
+                            styles.reasonButton,
+                            currentMedication.indication === reason && styles.reasonButtonSelected
+                          ]}
+                          onPress={() => handleReasonSelection(reason as '骨質疏鬆' | '惡性腫瘤/骨轉移' | '多發性骨髓瘤' | '其他')}
+                        >
+                          <Text style={[
+                            styles.reasonText,
+                            currentMedication.indication === reason && styles.reasonTextSelected
+                          ]}>{reason}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Start Date */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>開始{currentMedication.administrationRoute === '口服' ? '服用' : '注射'}的時間</Text>
+                    <View style={styles.datePickerGroup}>
+                      <View style={[styles.pickerContainer, { flex: 1 }]}>
+                        <RNPickerSelect
+                          value={currentMedication.startYear}
+                          onValueChange={(value) => 
+                            setCurrentMedication({
+                              ...currentMedication,
+                              startYear: value
+                            })}
+                          items={yearOptions}
+                          style={pickerSelectStyles}
+                          placeholder={{ label: '年份', value: null }}
+                        />
+                      </View>
+                      <View style={[styles.pickerContainer, { flex: 1 }]}>
+                        <RNPickerSelect
+                          value={currentMedication.startMonth}
+                          onValueChange={(value) => 
+                            setCurrentMedication({
+                              ...currentMedication,
+                              startMonth: value
+                            })}
+                          items={monthOptions}
+                          style={pickerSelectStyles}
+                          placeholder={{ label: '月份', value: null }}
+                        />
                       </View>
                     </View>
+                  </View>
 
-                    {/* Start Date */}
+                  {/* Frequency */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>
+                      多久{currentMedication.administrationRoute === '口服' ? '吃' : '注射'}一次
+                    </Text>
+                    <View style={styles.radioGroup}>
+                      {frequencyOptions.map((option) => (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            styles.radioButton,
+                            currentMedication.frequency === option.value && styles.radioButtonSelected
+                          ]}
+                          onPress={() => handleFrequencySelection(option.value as '每天' | '每個月' | '每半年')}
+                        >
+                          <Text style={[
+                            styles.radioText,
+                            currentMedication.frequency === option.value && styles.radioTextSelected
+                          ]}>{option.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Stop Date Section */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>目前用藥狀態</Text>
+                    <View style={styles.radioGroup}>
+                      <TouchableOpacity 
+                        style={[
+                          styles.radioButton,
+                          !currentMedication.isStopped && styles.radioButtonSelected
+                        ]}
+                        onPress={() => setCurrentMedication({ 
+                          ...currentMedication,
+                          isStopped: false,
+                          stopYear: '',
+                          stopMonth: '',
+                        })}
+                      >
+                        <Text style={[
+                          styles.radioText,
+                          !currentMedication.isStopped && styles.radioTextSelected
+                        ]}>持續服用</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[
+                          styles.radioButton,
+                          currentMedication.isStopped && styles.radioButtonSelected
+                        ]}
+                        onPress={() => setCurrentMedication({ 
+                          ...currentMedication,
+                          isStopped: true 
+                        })}
+                      >
+                        <Text style={[
+                          styles.radioText,
+                          currentMedication.isStopped && styles.radioTextSelected
+                        ]}>已停藥</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Show stop date pickers only if stopped */}
+                  {currentMedication.isStopped && (
                     <View style={styles.inputGroup}>
-                      <Text style={styles.label}>開始{currentMedication.administrationRoute === '口服' ? '服用' : '注射'}的時間</Text>
+                      <Text style={styles.sublabel}>停藥時間</Text>
                       <View style={styles.datePickerGroup}>
                         <View style={[styles.pickerContainer, { flex: 1 }]}>
                           <RNPickerSelect
-                            value={currentMedication.startYear}
-                            onValueChange={(value) => 
-                              setCurrentMedication({
-                                ...currentMedication,
-                                startYear: value
-                              })}
+                            value={currentMedication.stopYear}
+                            onValueChange={handleStopYearChange}
                             items={yearOptions}
                             style={pickerSelectStyles}
                             placeholder={{ label: '年份', value: null }}
@@ -545,124 +844,30 @@ export default function MedicationHistory() {
                         </View>
                         <View style={[styles.pickerContainer, { flex: 1 }]}>
                           <RNPickerSelect
-                            value={currentMedication.startMonth}
-                            onValueChange={(value) => 
-                              setCurrentMedication({
-                                ...currentMedication,
-                                startMonth: value
-                              })}
+                            value={currentMedication.stopMonth}
+                            onValueChange={handleStopMonthChange}
                             items={monthOptions}
                             style={pickerSelectStyles}
                             placeholder={{ label: '月份', value: null }}
                           />
                         </View>
                       </View>
+                      {dateError ? (
+                        <Text style={styles.errorText}>{dateError}</Text>
+                      ) : null}
                     </View>
+                  )}
 
-                    {/* Frequency */}
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.label}>
-                        多久{currentMedication.administrationRoute === '口服' ? '吃' : '注射'}一次
-                      </Text>
-                      <View style={styles.radioGroup}>
-                        {frequencyOptions.map((option) => (
-                          <TouchableOpacity
-                            key={option.value}
-                            style={[
-                              styles.radioButton,
-                              currentMedication.frequency === option.value && styles.radioButtonSelected
-                            ]}
-                            onPress={() => handleFrequencySelection(option.value as '每天' | '每個月' | '每半年')}
-                          >
-                            <Text style={[
-                              styles.radioText,
-                              currentMedication.frequency === option.value && styles.radioTextSelected
-                            ]}>{option.label}</Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    </View>
-
-                    {/* Stop Date Section */}
-                    <View style={styles.inputGroup}>
-                      <Text style={styles.label}>目前用藥狀態</Text>
-                      <View style={styles.radioGroup}>
-                        <TouchableOpacity 
-                          style={[
-                            styles.radioButton,
-                            !currentMedication.isStopped && styles.radioButtonSelected
-                          ]}
-                          onPress={() => setCurrentMedication({ 
-                            ...currentMedication,
-                            isStopped: false,
-                            stopYear: '',
-                            stopMonth: '',
-                          })}
-                        >
-                          <Text style={[
-                            styles.radioText,
-                            !currentMedication.isStopped && styles.radioTextSelected
-                          ]}>持續服用</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity 
-                          style={[
-                            styles.radioButton,
-                            currentMedication.isStopped && styles.radioButtonSelected
-                          ]}
-                          onPress={() => setCurrentMedication({ 
-                            ...currentMedication,
-                            isStopped: true 
-                          })}
-                        >
-                          <Text style={[
-                            styles.radioText,
-                            currentMedication.isStopped && styles.radioTextSelected
-                          ]}>已停藥</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {/* Show stop date pickers only if stopped */}
-                    {currentMedication.isStopped && (
-                      <View style={styles.inputGroup}>
-                        <Text style={styles.sublabel}>停藥時間</Text>
-                        <View style={styles.datePickerGroup}>
-                          <View style={[styles.pickerContainer, { flex: 1 }]}>
-                            <RNPickerSelect
-                              value={currentMedication.stopYear}
-                              onValueChange={handleStopYearChange}
-                              items={yearOptions}
-                              style={pickerSelectStyles}
-                              placeholder={{ label: '年份', value: null }}
-                            />
-                          </View>
-                          <View style={[styles.pickerContainer, { flex: 1 }]}>
-                            <RNPickerSelect
-                              value={currentMedication.stopMonth}
-                              onValueChange={handleStopMonthChange}
-                              items={monthOptions}
-                              style={pickerSelectStyles}
-                              placeholder={{ label: '月份', value: null }}
-                            />
-                          </View>
-                        </View>
-                        {dateError ? (
-                          <Text style={styles.errorText}>{dateError}</Text>
-                        ) : null}
-                      </View>
-                    )}
-
-                    {/* Button to add/update medication */}
-                    <TouchableOpacity 
-                      style={styles.addMedicationButton} 
-                      onPress={saveMedication}
-                    >
-                      <Text style={styles.addMedicationButtonText}>
-                        {editingMedicationIndex !== null ? '更新藥物' : '再添加一種藥物'}
-                      </Text>
-                    </TouchableOpacity>
-                  </>
-                )}
+                  {/* Button to add/update medication */}
+                  <TouchableOpacity 
+                    style={styles.addMedicationButton} 
+                    onPress={saveMedication}
+                  >
+                    <Text style={styles.addMedicationButtonText}>
+                      {editingMedicationIndex !== null ? '更新藥物' : '再添加一種藥物'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
               </View>
             </>
           )}
@@ -895,6 +1100,30 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  noteContainer: {
+    marginTop: 15,
+    padding: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 5,
+  },
+  noteText: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 5,
+  },
+  disclaimerText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  futureMedicationCard: {
+    backgroundColor: '#f8f8f8',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  textInput: {
+    padding: 10,
   },
 });
 

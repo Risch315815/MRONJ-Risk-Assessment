@@ -17,6 +17,7 @@ export type SubType =
 export type DrugName = 
   // Bisphosphonates - IV
   | 'Zoledronate (Zometa)'
+  | 'Zoledronate (Reclast)'
   | 'Pamidronate (Aredia)'
   | 'Ibandronate (Boniva IV)'
   
@@ -27,6 +28,11 @@ export type DrugName =
   
   // RANK-L Inhibitors
   | 'Denosumab (Prolia/Xgeva)'
+  | 'Denosumab (Prolia)'
+  | 'Denosumab (Xgeva)'
+  
+  // Monoclonal Antibodies
+  | 'Romosozumab (Evenity)'
   
   // Antiangiogenic
   | 'Bevacizumab (Avastin)'
@@ -82,6 +88,14 @@ export interface PatientData {
   isStopped: boolean;
   stopYear: string;
   stopMonth: string;
+  medicationStatus: '使用中/過去曾使用' | '過去未曾使用，即將開始使用' | '';
+  
+  // Future medication plan
+  futureMedicationReason: string;
+  futureMedicationName: string;
+  futureMedicationStartYear: string;
+  futureMedicationStartMonth: string;
+  futureMedicationRoute: '口服' | '注射' | '';
 
   // MRONJ Specific Risk Factors
   steroidUse: boolean;               // 類固醇使用
@@ -109,11 +123,11 @@ interface PatientStore {
   removeMedication: (index: number) => void;
 }
 
-const initialState: PatientData = {
+const initialPatientData: PatientData = {
   name: '',
-  birthYear: new Date().getFullYear().toString(),
-  birthMonth: '1',
-  birthDay: '1',
+  birthYear: '',
+  birthMonth: '',
+  birthDay: '',
   idNumber: '',
   age: null,
   gender: '',
@@ -138,13 +152,17 @@ const initialState: PatientData = {
   isStopped: false,
   stopYear: '',
   stopMonth: '',
-  // Initialize MRONJ risk factors
+  medicationStatus: '',
+  futureMedicationReason: '',
+  futureMedicationName: '',
+  futureMedicationStartYear: '',
+  futureMedicationStartMonth: '',
+  futureMedicationRoute: '',
   steroidUse: false,
   diabetes: false,
   anemia: false,
   heavySmoker: false,
   periodontalIssues: false,
-  // Initialize medications array
   medications: [],
   height: '',
   weight: '',
@@ -153,12 +171,12 @@ const initialState: PatientData = {
 };
 
 export const usePatientStore = create<PatientStore>((set: any) => ({
-  patientData: initialState,
+  patientData: initialPatientData,
   updatePatientInfo: (data: Partial<PatientData>) => 
     set((state: PatientStore) => ({ 
       patientData: { ...state.patientData, ...data } 
     })),
-  resetPatientData: () => set({ patientData: initialState }),
+  resetPatientData: () => set({ patientData: initialPatientData }),
   // Add methods for managing medications
   addMedication: (medication: Medication) =>
     set((state: PatientStore) => ({

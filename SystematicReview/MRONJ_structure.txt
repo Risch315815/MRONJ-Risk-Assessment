@@ -829,6 +829,129 @@ please do the following things:
 3. We'll have to provide customized educational information based on the indication and type of medication of the patient, preferably showing the percentage of risk of MRONJ related to that medication, and citing the source. We also need to add message(D) if dental condition is not ideal: emphasize the inflammation in the oral region as an impactful risk factor, and let patient know that it might be the dentists' fault if they get MRONJ after dentist take measures to remove source of inflammation
 
 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+for diabetes in patientData.ts:
+since it's an important risk factor for MRONJ, please isolate it and build a single question with the form as other risk factors
+=> "是否有控制不佳之糖尿病 (HbA1c >= 7.0% )""是/否"
+according to 2017 world workshop, ill-controlled diabetes is defined as HbA1c >= 7.0%
+
+------------------------------------------------------
+
+  // Updated systemic diseases options
+  const systemicDiseaseOptions = [
+    { label: '無', value: '無' },
+    { label: '高血壓', value: '高血壓' },
+    { label: '心臟支架', value: '心臟支架' },
+    { label: '糖尿病', value: '糖尿病' },
+    { label: '洗腎', value: '洗腎' },
+    { label: 'A型肝炎', value: 'A型肝炎' },
+    { label: 'B型肝炎', value: 'B型肝炎' },
+    { label: 'C型肝炎', value: 'C型肝炎' },
+    { label: '腦中風病史', value: '腦中風病史' },
+  ];
+
+please change     { label: '心臟支架', value: '心臟支架' }, to      { label: '心臟血管疾病', value: '心臟血管疾病' },
+from medical-history.tsx
+
+
+-----------------------------------------------------
+
+RE:meication related to MRONJ
+
+Biphosphonate:
+> PO
+- alendronate (Fosa-max)
+- risedronate (Actonel)
+> Parenteral
+- zoledronate (Reclast)
+- ibandronate (Boniva)
+
+RANK-L: receptor activator of nuclear factor kappa-B ligand
+>SC
+- Prolia: osteoporosis, Q6M
+>Parenteral
+- Xegva: metastatic bone disease, QM
+
+ Monoclonal antibody:
+>SC
+- Romosozumab
+
+-------------------------------------------------------
+
+>>PREVENTION OF MRONJ
+
+Numerous studies demonstrate potentially modiﬁable factors for reducing the risk of MRONJ:
+- performing high-risk surgical procedures prior to initiating therapy [95,173-175], consultation of dentist before treatment course 
+- using    preoperative    and postoperative  antibiotics  and  antimicrobial  mouth rinses [174,176-180]
+- primarily closing extractions sites [176-178]
+- maintaining good oral hygiene [95,166,176,177,181]
+- Maximizing overall patient health (smoking cessation, diabetes optimization)
+
+Optimization of Oral Health
+> prophylactic treatment strategies that reduce the inci-dence of MRONJ: early screening and initiation of appropriate dental care prior to the initiation of antiresorptive therapy [38,182-186]
+- many animal studies demonstrate that periodontal or periapical inﬂammation plays a key role in creating a local environment that supports the development of bone necrosis in the context of systemic antiresorptive therapy [85,91,195,196]
+- prostate cancer patients with bone metastasis, instituting a more regimented dental health surveillance system --> 2.5- fold reduction in relative risk
+   compared to symptomatically driven dental treatment. [186]  
+
+
+> Treatment  planning  for patients at risk of  developing MRONJ should include: [197]
+- acute infection, potential infection
+- patient motivation, patient education regarding dental care
+- ﬂuoride application,  chlorhexidine  rinses
+- tooth  mobility,  periodontal disease, presence of root fragments, caries, periapical pathology
+- edentulism,  denture stability
+
+> Cessation of At-Risk Medication Therapy (Drug Holiday) Prior to Tooth Extraction or Other Procedures that Involve Osseous Injury (eg, Dental Implant Placement, Periodontal or Apical Endodontic Treatment)
+Controversial
+- While the practice of a drug holiday has been accepted and recommended by several international professional societies [3,38,182,183,198], the evidence to support or refute such positions remains inconclusive
+- due to the rarity of MRONJ in these patient populations --> randomized-controlled trials provide insufﬁcient data to create sound treatment protocols
+
+- the risks of potential deleterious effects of suspending antiresorptive therapy may outweigh a beneﬁt
+
+- RANKL inhibitors in osteoporosis patients: rebound increase in bone resorption following the discontinuation of DMB, resulting in an increased risk of multilevel vertebral fractures. [200-202]
+- The planned dentoalveolar surgery can be completed 3-4 months following the last dose of DMB when the level of osteoclast inhibition is waning. 
+- It can then be reinstituted 6-8 weeks postsurgery. This management strategy minimizes the length of the drug holiday while maintaining a favorable environment for bone healing.
+
+> Bone Turnover Markers
+- No biomarkers are validated for clinical decision-making, and continued research and pro- spective studies are required before these markers can be    considered    efﬁcacious    tools    in    estimating MRONJ risk.
+
+
+>> PREVENTION STRATEGIES
+> Patients scheduled to initiate antiresorptive treatment for cancer therapy
+- The treatment objective for this group of patients is to minimize the risk of developing MRONJ (Table 2)
+
+- Although  a  small  percentage  of  patients  receiving antiresorptives develop osteonecrosis of the jaw spontaneously, the majority of affected patients experience this complication following dentoalveolar surgery. [5,112,165,206,207] 
+- Therefore, if systemic conditions permit, initiation of antiresorptive therapy should be delayed until dental health is optimized. [173,208] 
+
+> minimizing the burden of dental infection and inﬂammation prior to dentoalveolar surgery in this cohort of patients
+- Nonrestorable teeth and those with a poor prognosis should be extracted
+- antiresorptive therapy should be delayed, if systemic conditions permit, until the surgical site(s) have mucosalized or until there is adequate osseous healing. 
+- Dental prophylaxis, caries control, conservative restorative dentistry, and nonoperative endodontic therapy must be continued on a frequent and indeﬁnite basis. [185]
+- patients with full or partial dentures should be examined for areas of mucosal trauma, especially along the lingual ﬂange region. Patients should report  any pain, swelling, or exposed bone.
+
+> anti-resorptive therapy for osteoporosis
+Patient should be reminded of: 
+- beneﬁts associated with antiresorptive therapies in preventing fragility fractures
+(hip fracture rates in the United States declined each year from 2002 to 2012 and then plateaued at levels higher than projected for 2013 to 2015, attributable to an ‘‘osteoporosis treatment gap.’’ [210] )
+- rare occurrence of MRONJ
+
+> Asymptomatic  patients  receiving  antiresorptive therapies for cancer
+- If a dentoalveolar surgical procedure is unavoidable (eg, fractured tooth, advanced  periodontal  disease),  patients  should  be informed  of  the  associated  risks.  
+- Nonrestorable teeth  may be  treated  by removal of the crowns and endodontic treatment of the remaining  roots. [213] Teeth  may  be  extracted  if  necessary. 
+- Placement of dental implants should be avoided in the oncology patient receiving parenteral antiresorp- tive therapy or antiangiogenic medications. Case series and systematic reviews have reported necrosis associated with antiresorptive therapy and implant placement. [194,214-216]
+
+> Asymptomatic  patients  receiving  antiresorptive therapy for osteoporosis
+The  risk  for developing  MRONJ  when the indication is osteoporosis is:
+- BPs: 0.02-0.04%
+- denosumab: 0.3%
+
+Sound recommendations based on strong clinical research design are still lacking for patients taking oral BPs.
+In general, elective dentoalveolar surgery does not appear to be contraindicated in this group. Risk assess- ment for the development of MRONJ in these patients includes  the  above-stated  data  and  the  discussion above related to drug holidays.
+The placement of dental implants in the context of antiresorptive therapy for osteoporosis continues to be an area of research interest. Several systematic re- views have acknowledged the lack of quality data and randomized clinical trials. Some studies have recom- mended caution, especially with a longer duration of therapy or steroid use.194,216 For example, in their sys- tematic  review,  Granate  et  al,216   identiﬁed  several studies that reported an elevated MRONJ risk associ- ated with implants placed in the posterior jaw if the duration of bisphosphonate therapy exceeded 3 years and if the patients were receiving systemic corticoste- roids. In contrast to these studies, systematic reviews by Gelazius et al, and Stavropoulos et al, reported no in- crease in risk.214,217 A recent retrospective propensity- matched cohort study of 44,900 patients reported a decreased   risk   of   ONJ   in   osteoporosis   patients receiving  implants  compared  to  matched  controls who did not have implants. Of note, 9,738 patients had a history of BP use, and the results for implants was in contrast to risk increase for patients who under- went tooth extraction.218
+Reports of implant-related (MRONJ) necrosis can be divided into the early (implant surgery-triggered) or late  (implant  presence-triggered)  category.215,219,220 In these reviews, the majority of the implant-related necrosis were not related to the initial implant surgery but occurred  late  (>12  months) and  often  at sites where implants were placed prior to the initiation of bisphosphonate therapy. The common presentation was an en bloc failure, where the osseointegration of the   implants   is   maintained   within   the   seques- trum.220,221  This has been recognized as a separate pattern of failure that is distinct from the common peri-implantitis failure and considered by some to be pathognomonic of MRONJ. Although there are no pro- spective studies or systematic reviews pertaining to implant-related   necrosis   associated   with   RANKL inhibitors or other targeted therapies, AAOMS con- siders this to have a similar level of risk.
+In summary, robust data do not exist, and available data are conﬂicting. Therefore, AAOMS suggests that if dental implants are placed, informed consent should be provided to include the low risk of MRONJ, as well as early and late implant failure. These patients should be placed on a regular long-term recall schedule.
 
 
 
@@ -836,3 +959,9 @@ please do the following things:
 
 
 
+
+
+----------------------------------------------------------
+
+有在驗CTX的醫事檢驗所清單
+C-Terminal Telopeptide(CTx)，β-CrossLaps
