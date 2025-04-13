@@ -31,7 +31,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.x'
       
       - name: Install dependencies
         run: |
@@ -51,7 +51,7 @@ jobs:
           echo "Starting build process..."
           echo "Current directory contents before build:"
           ls -la
-          npm run build || echo "Build command failed"
+          npm run build || echo "Build command failed with error code $?"
           echo "Directory contents after build attempt:"
           ls -la
           echo "Checking for web-build directory:"
