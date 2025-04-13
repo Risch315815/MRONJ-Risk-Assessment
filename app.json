@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "MRONJ Risk Assessment",
+    "slug": "mronj-risk-assessment",
+    "version": "1.8.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "bundleIdentifier": "com.yourcompany.mronjrisk",
+      "buildNumber": "1.0.0",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "This app needs access to save PDF reports to your device.",
+        "NSDocumentsDirectoryUsageDescription": "This app needs access to save assessment reports."
+      }
+    },
+    "android": {
+      "package": "com.mronj.riskassessment",
+      "versionCode": 8,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE"
+      ],
+      "proguard-rules": "./proguard-rules.pro"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "mronj-app",
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "2753a1c2-1f7b-42f9-b793-457f5da31302"
+      }
+    }
+  }
+}
